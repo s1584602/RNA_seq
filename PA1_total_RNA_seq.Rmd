@@ -1,0 +1,1798 @@
+Pipeline_total_RNA
+
+```{bash}
+
+
+
+gunzip *.fq.gz
+cat 1_1.fq 25_1.fq >>WT1_1.fq
+cat 2_1.fq 26_1.fq >>WT2_1.fq
+cat 3_1.fq 27_1.fq >>WT3_1.fq
+cat 4_1.fq 28_1.fq >>WT4_1.fq
+cat 5_1.fq 29_1.fq >>KO1_1.fq
+cat 6_1.fq 30_1.fq >>KO2_1.fq
+cat 7_1.fq 31_1.fq >>KO3_1.fq
+cat 8_1.fq 32_1.fq >>KO4_1.fq
+cat 9_1.fq 33_1.fq >>H1_1.fq
+cat 10_1.fq 34_1.fq >>H2_1.fq
+cat 11_1.fq 35_1.fq >>H3_1.fq
+cat 12_1.fq 36_1.fq >>H4_1.fq
+
+cat 1_2.fq 25_2.fq >>WT1_2.fq
+cat 2_2.fq 26_2.fq >>WT2_2.fq
+cat 3_2.fq 27_2.fq >>WT3_2.fq
+cat 4_2.fq 28_2.fq >>WT4_2.fq
+cat 5_2.fq 29_2.fq >>KO1_2.fq
+cat 6_2.fq 30_2.fq >>KO2_2.fq
+cat 7_2.fq 31_2.fq >>KO3_2.fq
+cat 8_2.fq 32_2.fq >>KO4_2.fq
+cat 9_2.fq 33_2.fq >>H1_2.fq
+cat 10_2.fq 34_2.fq >>H2_2.fq
+cat 11_2.fq 35_2.fq >>H3_2.fq
+cat 12_2.fq 36_2.fq >>H4_2.fq
+
+
+for sample in  WT1 WT2 WT3 WT4 KO1 KO2 KO3 KO4 H1 H2 H3 H4
+do
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 ${sample}_1.fq -2 ${sample}_2.fq -S hisat_stringent.$sample.SAM --new-summary -t
+samtools view -bhS hisat_stringent.$sample.SAM > hisat_stringent.$sample.BAM
+samtools sort hisat_stringent.$sample.BAM -o hisat_stringent.$sample.sorted.BAM
+samtools index hisat_stringent.$sample.sorted.BAM
+stringtie -p 8 -G Homo_sapiens.GRCh38.98.gtf -o hisat_stringent.$sample.gtf hisat_stringent.$sample.sorted.BAM
+done
+
+```
+
+
+```{r}
+library(dplyr)
+library(Rsubread)
+library(DESeq2)
+library(gplots)
+library(RColorBrewer)
+library(ggplot2)
+library(VennDiagram)
+library(biomaRt)
+
+FCWT1_reverse <-featureCounts(files="hisat_stringent.WT1.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                              isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+
+
+FCWT2_reverse <-featureCounts(files="hisat_stringent.WT2.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                              isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+
+
+FCWT3_reverse <-featureCounts(files="hisat_stringent.WT3.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                              isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+
+
+FCWT4_reverse <-featureCounts(files="hisat_stringent.WT4.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                              isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+
+write.csv( as.data.frame(FCWT1_reverse$counts), file="FCWT1.counts_reverse.csv" )
+write.csv( as.data.frame(FCWT1_reverse$stat), file="FCWT1.stats_reverse.csv" )
+write.csv( as.data.frame(FCWT2_reverse$counts), file="FCWT2.count_reverse" )
+write.csv( as.data.frame(FCWT2_reverse$stat), file="FCWT2.stat_reverse" )
+write.csv( as.data.frame(FCWT3_reverse$counts), file="FCWT3.count_reverse" )
+write.csv( as.data.frame(FCWT3_reverse$stat), file="FCWT3.stat_reverse" )
+write.csv( as.data.frame(FCWT4_reverse$counts), file="FCWT4.count_reverse" )
+write.csv( as.data.frame(FCWT4_reverse$stat), file="FCWT4.stat_reverse" )
+
+
+FCKO1_reverse <-featureCounts(files="hisat_stringent.KO1.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                              isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+FCKO2_reverse <-featureCounts(files="hisat_stringent.KO2.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                              isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+FCKO3_reverse <-featureCounts(files="hisat_stringent.KO3.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                              isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+FCKO4_reverse <-featureCounts(files="hisat_stringent.KO4.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                              isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+
+write.csv( as.data.frame(FCKO1_reverse$counts), file="FCKO1.count_reverse" )
+write.csv( as.data.frame(FCKO1_reverse$stat), file="FCKO1.stat_reverse" )
+write.csv( as.data.frame(FCKO2_reverse$counts), file="FCKO2.count_reverse" )
+write.csv( as.data.frame(FCKO2_reverse$stat), file="FCKO2.stat_reverse" )
+write.csv( as.data.frame(FCKO3_reverse$counts), file="FCKO3.count_reverse" )
+write.csv( as.data.frame(FCKO3_reverse$stat), file="FCKO3.stat_reverse" )
+write.csv( as.data.frame(FCKO4_reverse$counts), file="FCKO4.count_reverse" )
+write.csv( as.data.frame(FCKO4_reverse$stat), file="FCKO4.stat_reverse" )
+
+
+FCH1_reverse <-featureCounts(files="hisat_stringent.H1.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                             isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+FCH2_reverse <-featureCounts(files="hisat_stringent.H2.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                             isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+FCH3_reverse <-featureCounts(files="hisat_stringent.H3.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                             isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+FCH4_reverse <-featureCounts(files="hisat_stringent.H4.sorted.bam",annot.ext="Homo_sapiens.GRCh38.98.gtf",
+                             isGTFAnnotationFile=TRUE,isPairedEnd=TRUE,countMultiMappingReads=FALSE,requireBothEndsMapped=TRUE,strandSpecific=2)
+
+write.csv( as.data.frame(FCH1_reverse$counts), file="FCH1.count_reverse" )
+write.csv( as.data.frame(FCH1_reverse$stat), file="FCH1.stat_reverse" )
+write.csv( as.data.frame(FCH2_reverse$counts), file="FCH2.count_reverse" )
+write.csv( as.data.frame(FCH2_reverse$stat), file="FCH2.stat_reverse" )
+write.csv( as.data.frame(FCH3_reverse$counts), file="FCH3.count_reverse" )
+write.csv( as.data.frame(FCH3_reverse$stat), file="FCH3.stat_reverse" )
+write.csv( as.data.frame(FCH4_reverse$counts), file="FCH4.count_reverse" )
+write.csv( as.data.frame(FCH4_reverse$stat), file="FCH4.stat_reverse" )
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+FCWT1_reverse.counts<-read.csv("FCWT1.counts_reverse.csv",header=TRUE, row.names=1)
+FCWT2_reverse.counts<-read.csv("FCWT2.count_reverse",header=TRUE, row.names=1)
+FCWT3_reverse.counts<-read.csv("FCWT3.count_reverse",header=TRUE, row.names=1)
+FCWT4_reverse.counts<-read.csv("FCWT4.count_reverse",header=TRUE, row.names=1)
+FCKO1_reverse.counts<-read.csv("FCKO1.count_reverse",header=TRUE, row.names=1)
+FCKO2_reverse.counts<-read.csv("FCKO2.count_reverse",header=TRUE, row.names=1)
+FCKO3_reverse.counts<-read.csv("FCKO3.count_reverse",header=TRUE, row.names=1)
+FCKO4_reverse.counts<-read.csv("FCKO4.count_reverse",header=TRUE, row.names=1)
+FCH1_reverse.counts<-read.csv("FCH1.count_reverse",header=TRUE, row.names=1)
+FCH2_reverse.counts<-read.csv("FCH2.count_reverse",header=TRUE, row.names=1)
+FCH3_reverse.counts<-read.csv("FCH3.count_reverse",header=TRUE, row.names=1)
+FCH4_reverse.counts<-read.csv("FCH4.count_reverse",header=TRUE, row.names=1)
+
+
+
+#Featurecounts DEseq2
+
+FCWTHKO_reverse<- data.frame(FCWT1_reverse.counts,
+                               FCWT2_reverse.counts,
+                               FCWT3_reverse.counts,
+                               FCWT4_reverse.counts,
+                               FCKO1_reverse.counts,
+                               FCKO2_reverse.counts,
+                               FCKO3_reverse.counts,
+                               FCKO4_reverse.counts,
+                               FCH1_reverse.counts,
+                               FCH2_reverse.counts,
+                               FCH3_reverse.counts,
+                               FCH4_reverse.counts
+)
+colnames(FCWTHKO_reverse)<-c("WT1","WT2","WT3","WT4","KO1","KO2","KO3","KO4","H1","H2","H3","H4")
+
+FCWTHKO_reverse$total<-rowSums(FCWTHKO_reverse[,1:12])
+filter <- filter(FCWTHKO_reverse, total >50)
+boxplot(filter[1:12],ylim = c(0, 1500))
+
+
+conditions<- data.frame(c(rep("wildtype",4),rep("knockout",4),rep("heterozygote",4)))
+rownames(conditions)<-colnames(FCWTHKO_reverse[,1:12])
+colnames(conditions)<-("cell.line")
+DEseqWTHKO_reverse <- DESeqDataSetFromMatrix(countData = FCWTHKO_reverse[,1:12],
+                                               colData = conditions,
+                                               design = ~ cell.line)
+DEseqWTHKO_reverse$cell.line <- relevel(DEseqWTHKO_reverse$cell.line, ref = "wildtype")
+sizeFactors(estimateSizeFactors(DEseqWTHKO_reverse))
+DEseqWTHKO_reverse<-DESeq(DEseqWTHKO_reverse)
+#head(counts(DEseqWTHKO, normalized=FALSE))
+#head(counts(DEseqWTHKO, normalized=TRUE))
+
+rlogDEseqWTHKO_reverse<-rlog(DEseqWTHKO_reverse)
+plot(hclust(dist(t(assay(rlogDEseqWTHKO_reverse)))))
+plotPCA(rlogDEseqWTHKO_reverse,intgroup="cell.line")
+
+topVarGenes <- head( order( rowVars( assay(rlogDEseqWTHKO_reverse) ), decreasing=TRUE ), 50 )
+heatmap.2( assay(rlogDEseqWTHKO_reverse)[ topVarGenes, ], scale="row",
+           trace="none", dendrogram="both",
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+DEseqWTHKO_reverse_H <- lfcShrink(DEseqWTHKO_reverse, coef="cell.line_heterozygote_vs_wildtype",type="apeglm")
+DEseqWTHKO_reverse_KO <- lfcShrink(DEseqWTHKO_reverse, coef="cell.line_knockout_vs_wildtype",type="apeglm")
+
+head(DEseqWTHKO_reverse_H)
+summary(DEseqWTHKO_reverse_H)
+head(DEseqWTHKO_reverse_KO)
+summary(DEseqWTHKO_reverse_KO)
+
+sum( DEseqWTHKO_reverse_H$padj < 0.05, na.rm=TRUE )
+sum( DEseqWTHKO_reverse_KO$padj < 0.05, na.rm=TRUE )
+
+
+plotMA(DEseqWTHKO_reverse_H, ylim=c(-2,2),alpha=0.05,main="H_shrink")
+plotMA(DEseqWTHKO_reverse_KO, ylim=c(-2,2),alpha=0.05,main="KO_shrink")
+
+?complete.cases
+
+
+
+
+
+
+
+
+
+ensembl <- useMart("ensembl")
+listDatasets(ensembl100)
+ensembl = useDataset("hsapiens_gene_ensembl",mart=ensembl)
+listAttributes(ensembl100)
+
+ensembl100<-getBM(attributes=c('ensembl_gene_id', 'ensembl_transcript_id','external_gene_name'), 
+      mart = ensembl)
+
+ensembl_genes<-ensembl100[,c(1,3)]
+ensembl_genes<-distinct(ensembl_genes,ensembl_gene_id, .keep_all= TRUE)
+
+
+
+
+
+
+DEseqWTHKO_reverse_H<-as.data.frame(DEseqWTHKO_reverse_H)
+DEseqWTHKO_reverse_H$ensembl_gene_id<-rownames(DEseqWTHKO_reverse_H)
+DEseqWTHKO_reverse_H<-left_join(DEseqWTHKO_reverse_H,ensembl_genes)
+#FCWTHKO_reverse$external_gene_name[is.na(FCWTHKO_reverse$external_gene_name)]<- as.character(FCWTHKO_reverse$ensembl_gene_id[is.na(FCWTHKO_reverse$external_gene_name)])
+rownames(DEseqWTHKO_reverse_H)<-DEseqWTHKO_reverse_H$ensembl_gene_id
+
+DEseqWTHKO_reverse_KO<-as.data.frame(DEseqWTHKO_reverse_KO)
+DEseqWTHKO_reverse_KO$ensembl_gene_id<-rownames(DEseqWTHKO_reverse_KO)
+DEseqWTHKO_reverse_KO<-left_join(DEseqWTHKO_reverse_KO,ensembl_genes)
+#FCWTHKO_reverse$external_gene_name[is.na(FCWTHKO_reverse$external_gene_name)]<- as.character(FCWTHKO_reverse$ensembl_gene_id[is.na(FCWTHKO_reverse$external_gene_name)])
+rownames(DEseqWTHKO_reverse_KO)<-DEseqWTHKO_reverse_KO$ensembl_gene_id
+
+write.csv(DEseqWTHKO_reverse_H, file="DEseqWTHKO_reverse_H2.csv" )
+write.csv(DEseqWTHKO_reverse_KO, file="DEseqWTHKO_reverse_KO3.csv" )
+
+PCR_DE_list<-c("IFIH1","IFIT1","IFIT2","DDX58")
+DEseqWTHKO_reverse_H[grep("IFIH1",DEseqWTHKO_reverse_H$external_gene_name),]
+DEseqWTHKO_reverse_H[grep("IFIT1",DEseqWTHKO_reverse_H$external_gene_name),]
+DEseqWTHKO_reverse_H[grep("IFIT2",DEseqWTHKO_reverse_H$external_gene_name),]
+DEseqWTHKO_reverse_H[grep("DDX58",DEseqWTHKO_reverse_H$external_gene_name),]
+
+DEseqWTHKO_reverse_KO[grep("IFIH1",DEseqWTHKO_reverse_KO$external_gene_name),]
+DEseqWTHKO_reverse_KO[grep("IFIT1",DEseqWTHKO_reverse_KO$external_gene_name),]
+DEseqWTHKO_reverse_KO[grep("IFIT2",DEseqWTHKO_reverse_KO$external_gene_name),]
+DEseqWTHKO_reverse_KO[grep("DDX58",DEseqWTHKO_reverse_KO$external_gene_name),]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#filter for significant genes with padj<0.05 abs 2logFC>1 H
+filter1_DEseqWTHKO_reverse_H<-DEseqWTHKO_reverse_H[complete.cases(DEseqWTHKO_reverse_H),]
+filter2_DEseqWTHKO_reverse_H<-filter1_DEseqWTHKO_reverse_H[filter1_DEseqWTHKO_reverse_H$padj<0.05,]
+filter3_DEseqWTHKO_reverse_H<-filter2_DEseqWTHKO_reverse_H[abs(filter2_DEseqWTHKO_reverse_H$log2FoldChange) > 1,]
+dim(filter1_DEseqWTHKO_reverse_H)
+dim(filter2_DEseqWTHKO_reverse_H)
+dim(filter3_DEseqWTHKO_reverse_H)
+View(as.data.frame(filter3_DEseqWTHKO_reverse_H))
+write.csv( as.data.frame(filter3_DEseqWTHKO_reverse_H), file="DEseqWTHKO_reverse_H_sign_FC.csv" )
+
+class(filter1_DEseqWTHKO_reverse_H)
+dffilter<-as.data.frame(filter1_DEseqWTHKO_reverse_H)
+dffilter$filter<-dffilter$padj<0.05 & abs(dffilter$log2FoldChange)>1
+
+ggplot(dffilter,aes(x=log2FoldChange, y=-log10(padj))) +
+  geom_point(aes(colour=filter)) +
+  scale_colour_manual(values=c("black","red"))+
+  geom_vline(xintercept=1,linetype=3) +
+  geom_vline(xintercept=-1,linetype=3) +
+  geom_hline(yintercept=-log10(0.05),linetype=3)+
+  xlim(-10,10)+
+  theme_niwot() +
+  theme(legend.position = "none") +
+  ggtitle("DEseqWTHKO_reverse_H")
+
+
+#filter for significant genes with padj<0.05 abs 2logFC>1 KO
+filter1_DEseqWTHKO_reverse_KO<-DEseqWTHKO_reverse_KO[complete.cases(DEseqWTHKO_reverse_KO),]
+filter2_DEseqWTHKO_reverse_KO<-filter1_DEseqWTHKO_reverse_KO[filter1_DEseqWTHKO_reverse_KO$padj<0.05,]
+filter3_DEseqWTHKO_reverse_KO<-filter2_DEseqWTHKO_reverse_KO[abs(filter2_DEseqWTHKO_reverse_KO$log2FoldChange) > 1,]
+dim(filter1_DEseqWTHKO_reverse_KO)
+dim(filter2_DEseqWTHKO_reverse_KO)
+dim(filter3_DEseqWTHKO_reverse_KO)
+View(as.data.frame(filter3_DEseqWTHKO_reverse_KO))
+write.csv( as.data.frame(filter3_DEseqWTHKO_reverse_KO), file="DEseqWTHKO_reverse_KO_sign_FC.csv" )
+
+class(filter1_DEseqWTHKO_reverse_KO)
+dffilter<-as.data.frame(filter1_DEseqWTHKO_reverse_KO)
+dffilter$filter<-dffilter$padj<0.05 & abs(dffilter$log2FoldChange)>1
+
+ggplot(dffilter,aes(x=log2FoldChange, y=-log10(padj))) +
+  geom_point(aes(colour=filter)) +
+  scale_colour_manual(values=c("black","red"))+
+  geom_vline(xintercept=1,linetype=3) +
+  geom_vline(xintercept=-1,linetype=3) +
+  geom_hline(yintercept=-log10(0.05),linetype=3)+
+  xlim(-10,10)+
+  theme_niwot() +
+  theme(legend.position = "none") +
+  ggtitle("DEseqWTHKO_reverse_KO")
+
+#Venn diagram
+library(VennDiagram)
+
+venn.diagram(list(rownames((filter3_DEseqWTHKO_reverse_KO)),rownames((filter3_DEseqWTHKO_reverse_H))),
+             category.names = c("FC_DE_KO" , "FC_DE_H " ),
+             filename = 'FC_DEseq_sign_FC.png',
+             main="FC_DEseq_sign_FC",
+             fill = c("blue","red"))
+
+DEseqd1599668783.69_D2.diagram(list(rownames((filter2_DEseqWTHKO_reverse_KO)),rownames((filter2_DEseqWTHKO_reverse_H))),
+             category.names = c("FC_DE_KO" , "FC_DE_H " ),
+             filename = 'FC_DEseq_sign.png',
+             main="FC_DEseq_sign",
+             fill = c("blue","red"))
+
+venn.diagram(list(rownames((filter3_DEseqWTHKO_reverse_KO)),rownames((filter3_DEseqWTHKO_reverse_KO))),
+             category.names = c("FC_DE_KO" , "FC_DE_KO " ),
+             filename = 'FC_DEseq_sign_FC_KO.png',
+             main="FC_DEseq_sign_FC_KO",
+             fill = c("blue","red"))
+
+venn.diagram(list(rownames((filter3_DEseqWTHKO_reverse_H)),rownames((filter3_DEseqWTHKO_reverse_H))),
+             category.names = c("FC_DE_H" , "FC_DE_H " ),
+             filename = 'FC_DEseq_sign_FC_H.png',
+             main="FC_DEseq_sign_FC_H",
+             fill = c("blue","red"))
+
+
+
+overview[grep("IFI",overview$geneNames),]
+
+```
+
+
+
+```{r}
+
+DEseqWTHKO_reverse_H<-read.csv("DEseqWTHKO_reverse_H2.csv")
+
+prog_filter_H<-DEseqWTHKO_reverse_H[complete.cases(DEseqWTHKO_reverse_H),]%>%filter(log2FoldChange >= 1 | log2FoldChange <= -1 | padj<0.05)
+#2240 genes
+write.csv( as.data.frame(prog_filter_H), file="prog_filter_H.csv" )
+
+sign_filter_H<-DEseqWTHKO_reverse_H[complete.cases(DEseqWTHKO_reverse_H),]%>%filter(padj<0.05)
+#2210
+write.csv( as.data.frame(sign_filter_H), file="sign_filter_H.csv" )
+
+stringent_filter_H<-DEseqWTHKO_reverse_H[complete.cases(DEseqWTHKO_reverse_H),]%>%filter(log2FoldChange >= 1 | log2FoldChange <= -1 & padj<0.05)
+#779 genes
+write.csv( as.data.frame(stringent_filter_H), file="stringent_filter_H.csv" )
+
+
+sign_filter_up_H<-DEseqWTHKO_reverse_H[complete.cases(DEseqWTHKO_reverse_H),]%>%filter(padj<0.05 & log2FoldChange >= 0)
+#1062 genes
+write.csv( as.data.frame(sign_filter_up_H), file="sign_filter_up_H.csv" )
+
+sign_filter_down_H<-DEseqWTHKO_reverse_H[complete.cases(DEseqWTHKO_reverse_H),]%>%filter(padj<0.05 & log2FoldChange <= 0)
+#1148 genes
+write.csv( as.data.frame(sign_filter_down_H), file="sign_filter_down_H.csv" )
+
+
+
+
+
+DEseqWTHKO_reverse_KO<-read.csv("DEseqWTHKO_reverse_KO3.csv")
+
+prog_filter_KO<-DEseqWTHKO_reverse_KO[complete.cases(DEseqWTHKO_reverse_KO),]%>%filter(log2FoldChange >= 1 | log2FoldChange <= -1 | padj<0.05)
+#7379 genes
+write.csv( as.data.frame(prog_filter_KO), file="prog_filter_KO.csv" )
+
+sign_filter_KO<-DEseqWTHKO_reverse_KO[complete.cases(DEseqWTHKO_reverse_KO),]%>%filter(padj<0.05)
+#7311
+write.csv( as.data.frame(sign_filter_KO), file="sign_filter_KO.csv" )
+
+stringent_filter_KO<-DEseqWTHKO_reverse_KO[complete.cases(DEseqWTHKO_reverse_KO),]%>%filter(log2FoldChange >= 1 | log2FoldChange <= -1 & padj<0.05)
+#2404 genes
+write.csv( as.data.frame(stringent_filter_KO), file="stringent_filter_KO.csv" )
+
+
+sign_filter_up_KO<-DEseqWTHKO_reverse_KO[complete.cases(DEseqWTHKO_reverse_KO),]%>%filter(padj<0.05 & log2FoldChange >= 0)
+#3301 genes
+write.csv( as.data.frame(sign_filter_up_KO), file="sign_filter_up_KO.csv" )
+
+sign_filter_down_KO<-DEseqWTHKO_reverse_KO[complete.cases(DEseqWTHKO_reverse_KO),]%>%filter(padj<0.05 & log2FoldChange <= 0)
+#4010 genes
+write.csv( as.data.frame(sign_filter_down_KO), file="sign_filter_down_KO.csv" )
+
+
+
+
+library(DESeq2)
+
+FCWT1_reverse.counts<-read.csv("FCWT1.counts_reverse.csv",header=TRUE, row.names=1)
+FCWT2_reverse.counts<-read.csv("FCWT2.count_reverse",header=TRUE, row.names=1)
+FCWT3_reverse.counts<-read.csv("FCWT3.count_reverse",header=TRUE, row.names=1)
+FCWT4_reverse.counts<-read.csv("FCWT4.count_reverse",header=TRUE, row.names=1)
+FCKO1_reverse.counts<-read.csv("FCKO1.count_reverse",header=TRUE, row.names=1)
+FCKO2_reverse.counts<-read.csv("FCKO2.count_reverse",header=TRUE, row.names=1)
+FCKO3_reverse.counts<-read.csv("FCKO3.count_reverse",header=TRUE, row.names=1)
+FCKO4_reverse.counts<-read.csv("FCKO4.count_reverse",header=TRUE, row.names=1)
+FCH1_reverse.counts<-read.csv("FCH1.count_reverse",header=TRUE, row.names=1)
+FCH2_reverse.counts<-read.csv("FCH2.count_reverse",header=TRUE, row.names=1)
+FCH3_reverse.counts<-read.csv("FCH3.count_reverse",header=TRUE, row.names=1)
+FCH4_reverse.counts<-read.csv("FCH4.count_reverse",header=TRUE, row.names=1)
+
+
+
+
+FCWTHKO_reverse<- data.frame(FCWT1_reverse.counts,
+                             FCWT2_reverse.counts,
+                             FCWT3_reverse.counts,
+                             FCWT4_reverse.counts,
+                             FCKO1_reverse.counts,
+                             FCKO2_reverse.counts,
+                             FCKO3_reverse.counts,
+                             FCKO4_reverse.counts,
+                             FCH1_reverse.counts,
+                             FCH2_reverse.counts,
+                             FCH3_reverse.counts,
+                             FCH4_reverse.counts
+)
+colnames(FCWTHKO_reverse)<-c("WT1","WT2","WT3","WT4","KO1","KO2","KO3","KO4","H1","H2","H3","H4")
+
+FCWTHKO_reverse$total<-rowSums(FCWTHKO_reverse[,1:12])
+filter <- filter(FCWTHKO_reverse, total >50)
+boxplot(filter[1:12],ylim = c(0, 1500))
+
+
+conditions<- data.frame(c(rep("wildtype",4),rep("knockout",4),rep("heterozygote",4)))
+rownames(conditions)<-colnames(FCWTHKO_reverse[,1:12])
+colnames(conditions)<-("cell.line")
+DEseqWTHKO_reverse <- DESeqDataSetFromMatrix(countData = FCWTHKO_reverse[,1:12],
+                                             colData = conditions,
+                                             design = ~ cell.line)
+DEseqWTHKO_reverse$cell.line <- relevel(DEseqWTHKO_reverse$cell.line, ref = "wildtype")
+sizeFactors(estimateSizeFactors(DEseqWTHKO_reverse))
+DEseqWTHKO_reverse<-DESeq(DEseqWTHKO_reverse)
+
+
+View(DEseqWTHKO_reverse)
+
+
+counts(DEseqWTHKO_reverse)[1:5,]
+
+
+
+
+total_RNA_DESeq2_normalised<-counts(DEseqWTHKO_reverse,normalized=TRUE)
+write.csv( as.data.frame(counts(DEseqWTHKO_reverse,normalized=TRUE)), file="total_RNA_DESeq2_normalised.csv" )
+
+
+
+ensembl_GO<-ensembl100[,c(1,3,4)]
+ensembl_GO_unique<-distinct(ensembl_GO,name_1006, .keep_all= TRUE)
+
+
+total_RNA_DESeq2_normalised_info<-as.data.frame(total_RNA_DESeq2_normalised)
+total_RNA_DESeq2_normalised_info$ensembl_gene_id<-rownames(total_RNA_DESeq2_normalised_info)
+total_RNA_DESeq2_normalised_info<-left_join(total_RNA_DESeq2_normalised_info,ensembl_GO)
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{bash}
+cd /mnt/f/sequencing/humangenome/Human98BT2
+#bowtie2 allignment
+for sample in  WT1 WT2 WT3 WT4 KO1 KO2 KO3 KO4 H1 H2 H3 H4
+do
+bowtie2 -p 4 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 ${sample}_1.fq -2 ${sample}_2.fq -S ${sample}.bt.SAM -t
+done
+
+for sample in  WT1 WT2 WT3 WT4 KO1 KO2 KO3 KO4 H1 H2 H3 H4
+do
+samtools view -bhS $sample.bt.SAM > $sample.bt.BAM
+samtools sort $sample.bt.BAM -o $sample.bt.sorted.BAM
+samtools index $sample.bt.sorted.BAM
+done
+
+ls
+
+
+
+
+for sample in WT4 KO1 KO2 KO3 KO4 H1 H2 H3 H4
+do
+bowtie2 -p 2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 ${sample}_1.fq -2 ${sample}_2.fq -S ${sample}.bt.SAM -t
+done
+
+for sample in WT4 KO1 KO2 KO3 KO4 H1 H2 H3 H4
+do
+samtools view -bhS $sample.bt.SAM > $sample.bt.BAM
+samtools sort $sample.bt.BAM -o $sample.bt.sorted.BAM
+samtools index $sample.bt.sorted.BAM
+done
+
+ls
+
+
+
+for sample in  25 26 27 28 29 30 31 32 33 34 35 36 WT4 KO1 KO2 KO3 
+do
+samtools view -bhS $sample.bt.SAM > $sample.bt.BAM
+samtools sort $sample.bt.BAM -o $sample.bt.sorted.BAM
+samtools index $sample.bt.sorted.BAM
+done
+
+ls
+
+
+for sample in  1 2 3 4 5 6 7 8 9 10 11 12 25 26 27 28 29 30 31 32 33 34 35 36 WT1 WT2 WT3 WT4 KO1 KO2 KO3 
+do
+samtools idxstats $sample.bt.sorted.BAM |awk '{{print $1,$3;}}' > $sample.transcripts.txt
+done
+
+
+
+
+
+#paired data
+
+
+
+
+bowtie2 --very-sensitive --no-unal -x Human_REL98 -q -1 1_1.fq -2 1_2.fq -S bowtie2.1.SAM -t
+
+
+bowtie2 --very-sensitive-local --no-unal -x Human_REL98 -q -1 1_1.fq -2 1_2.fq -S 1.local.SAM -t
+ls
+
+
+bowtie2 --very-sensitive --no-discordant --no-mixed -x Human_REL98 -q -1 1_1.fq -2 1_2.fq -S 1.bt.unal.SAM -t
+
+
+
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 2_1.fq -2 2_2.fq -S 2.bt.SAM -t
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 3_1.fq -2 3_2.fq -S 3.bt.SAM -t
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 4_1.fq -2 4_2.fq -S 4.bt.SAM -t
+
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 1_1.fq -2 1_2.fq -S 1.bt.SAM -t
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 5_1.fq -2 1_2.fq -S 1.bt.SAM -t
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 6_1.fq -2 1_2.fq -S 1.bt.SAM -t
+
+
+
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 5_1.fq -2 5_2.fq -S 5.bt.SAM -t
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 25_1.fq -2 25_2.fq -S 25.bt.SAM -t
+ls
+
+
+hisat2 -p 4 --no-spliced-alignment --no-mixed --no-discordant -x REL98 -q -1 1_1.fq -2 1_2.fq -S 1.hisat.REL98.SAM --un-conc 1.hisat.REL98.unal.SAM --new-summary -t
+
+hisat2 -p 4 --no-spliced-alignment --no-mixed --no-discordant -x REL98 -q -1 2_1.fq -2 2_2.fq -S 1.hisat.REL98.SAM --un-conc 2.hisat.REL98.unal.fastq --new-summary -t
+hisat2 -p 4 --no-spliced-alignment --no-mixed --no-discordant -x REL98 -q -1 5_1.fq -2 5_2.fq -S 1.hisat.REL98.SAM --un-conc 5.hisat.REL98.unal.fastq --new-summary -t
+
+
+
+
+no info on range of pairs? (-I & -x), concordant?
+
+
+
+hisat2 --no-unal -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat2.1.SAM --new-summary -t
+
+hisat2 -p 4 --no-unal --no-spliced-alignment -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat2.1.no.splice.SAM --new-summary -t
+hisat2 -p 4 --no-unal --no-mixed --no-discordant -x REL98 -q -1 1_1.fq -2 1_2.fq -S 1.hisat.REL98.spliced.SAM --new-summary -t
+
+hisat2 -p 4 --no-unal --no-spliced-alignment --no-softclip --no-mixed --no-discordant -x REL98 -q -1 1_1.fq -2 1_2.fq -S 1.hisat.REL98.nosoft.SAM --new-summary -t
+hisat2 -p 4 --no-unal --no-spliced-alignment --no-mixed --no-discordant -5 10 -3 10 -x REL98 -q -1 1_1.fq -2 1_2.fq -S 1.hisat.REL98.trim.SAM --new-summary -t
+
+
+
+
+hisat2 -p 4 --no-unal --no-spliced-alignment --no-mixed --no-discordant -x REL98 -q -1 1_1.fq -2 1_2.fq -S 1.hisat.REL98.SAM --new-summary -t
+mv 1.hisat.REL98.SAM /mnt/f/sequencing/humangenome/Human98HT2/1.hisat.REL98.SAM &
+hisat2 -p 4 --no-unal --no-mixed --no-discordant -x REL98 -q -1 1_1.fq -2 1_2.fq -S 1.hisat.REL98.intron.SAM --new-summary -t
+mv 1.hisat.REL98.intron.SAM /mnt/f/sequencing/humangenome/Human98HT2/1.hisat.REL98.intron.SAM &
+rm 1_1.fq &
+rm 1_2.fq &
+hisat2 -p 4 --no-unal --no-spliced-alignment --no-mixed --no-discordant -x REL98 -q -1 5_1.fq -2 5_2.fq -S 5.hisat.REL98.SAM --new-summary -t
+mv 5.hisat.REL98.SAM /mnt/f/sequencing/humangenome/Human98HT2/5.hisat.REL98.SAM &
+bowtie2 --very-sensitive --no-discordant --no-mixed -x Human_REL98 -q -1 5_1.fq -2 5_2.fq -S 5.bt.unal.SAM -t
+mv 5.bt.unal.SAM /mnt/f/sequencing/humangenome/Human98BT2/5.bt.unal.SAM &
+rm 5_1.fq &
+rm 5_2.fq &
+hisat2 -p 4 --no-unal --no-spliced-alignment --no-mixed --no-discordant -x REL98 -q -1 4_1.fq -2 4_2.fq -S 4.hisat.REL98.SAM --new-summary -t
+mv 4.hisat.REL98.SAM /mnt/f/sequencing/humangenome/Human98HT2/4.hisat.REL98.SAM &
+rm 4_1.fq &
+rm 4_2.fq &
+rm REL98.*.ht2 &
+cp /mnt/f/sequencing/humangenome/Human98BT2/6_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 6_1.fq -2 6_2.fq -S 6.bt.SAM -t
+mv 6.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/6.bt.SAM.SAM &
+rm 6_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/7_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 7_1.fq -2 7_2.fq -S 7.bt.SAM -t
+mv 7.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/7.bt.SAM.SAM &
+rm 7_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/8_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 8_1.fq -2 8_2.fq -S 8.bt.SAM -t
+mv 8.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/8.bt.SAM.SAM &
+rm 8_*.fq 
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/9_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 9_1.fq -2 9_2.fq -S 9.bt.SAM -t
+mv 9.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/9.bt.SAM.SAM &
+rm 9_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/10_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 10_1.fq -2 10_2.fq -S 10.bt.SAM -t
+mv 10.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/10.bt.SAM.SAM &
+rm 10_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/11_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 11_1.fq -2 11_2.fq -S 11.bt.SAM -t
+mv 11.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/11.bt.SAM.SAM &
+rm 11_*.fq &
+
+
+
+
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/11_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 11_1.fq -2 11_2.fq -S 11.bt.SAM -t
+mv 11.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/11.bt.SAM &
+rm 11_*.fq &
+
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/12_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 12_1.fq -2 12_2.fq -S 12.bt.SAM -t
+mv 12.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/12.bt.SAM &
+rm 12_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/26_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 26_1.fq -2 26_2.fq -S 26.bt.SAM -t
+mv 26.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/26.bt.SAM &
+rm 26_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/27_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 27_1.fq -2 27_2.fq -S 27.bt.SAM -t
+mv 27.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/27.bt.SAM &
+rm 27_*.fq &
+
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/28_*.fq.gz .
+gunzip 28_*.fq.gz 
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 28_1.fq -2 28_2.fq -S 28.bt.SAM -t
+mv 28.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/28.bt.SAM &
+rm 28_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/29_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 29_1.fq -2 29_2.fq -S 29.bt.SAM -t
+mv 29.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/29.bt.SAM &
+rm 29_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/30_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 30_1.fq -2 30_2.fq -S 30.bt.SAM -t
+mv 30.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/30.bt.SAM &
+rm 30_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/31_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 31_1.fq -2 31_2.fq -S 31.bt.SAM -t
+mv 31.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/31.bt.SAM &
+rm 31_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/33_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 33_1.fq -2 33_2.fq -S 33.bt.SAM -t
+mv 33.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/33.bt.SAM &
+rm 33_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/32_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 32_1.fq -2 32_2.fq -S 32.bt.SAM -t
+mv 32.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/32.bt.SAM &
+rm 32_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/34_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 34_1.fq -2 34_2.fq -S 34.bt.SAM -t
+mv 34.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/34.bt.SAM &
+rm 34_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/35_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 35_1.fq -2 35_2.fq -S 35.bt.SAM -t
+mv 35.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/35.bt.SAM &
+rm 35_*.fq &
+
+cp /mnt/f/sequencing/humangenome/Human98BT2/36_*.fq .
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 36_1.fq -2 36_2.fq -S 36.bt.SAM -t
+mv 36.bt.SAM /mnt/f/sequencing/humangenome/Human98BT2/36.bt.SAM &
+rm 36_*.fq &
+
+
+ls
+
+
+
+
+
+
+
+
+
+
+#non-paired small RNA
+bowtie2  --very-sensitive -p 12  --no-mixed --no-discordant --no-unal  -x $bt2db
+
+
+#chr bowtie: local allignment
+
+
+
+
+
+
+while read sample 1_1.fq 1_2.fq
+do
+echo "Processing $sample"| tee btlogfile1
+# Use samtools to make the binary compressed form of SAM output
+bt2 --very-sensitive -p 20 -x Human_REL98 --no-discordant --no-unal -1 1_1.fq -2 1_2.fq 2>> btlogfile1 | samtools view -bhS - > test1.bam
+# Next steps also involve samtools to sort then index the bam file
+echo "Sorting test1..."
+samtools sort -@ 12 -m 4G test1.bam -o test1.sorted.bam
+echo "Indexing test1..."
+mv test1.sorted.bam test1.bam
+samtools index test1.bam
+done 
+
+< detailsfile
+
+
+
+samtools view -bhS hisat2.5.SAM > hisat2.5.BAM
+samtools sort hisat2.5.BAM -o hisat2.5.sorted.BAM
+samtools index hisat2.5.sorted.BAM
+
+samtools view -bhS hisat2.1.SAM > hisat2.1.BAM
+samtools sort hisat2.1.BAM -o hisat2.1.sorted.BAM
+
+
+
+for sample in 1 2 5
+do
+cat $sample.hisat.REL98.unal.1.fastq | awk '{
+if(FNR%4==2){
+print $0};
+}' | sort | uniq -c | sort -k1,1nr | awk -v seqname=$sample '{if($1>1){print seqname"_"$2"_x"$1}}' > $sample.collapsed.1.fa
+done
+for sample in 1 2 5
+do
+cat $sample.hisat.REL98.unal.2.fastq | awk '{
+if(FNR%4==2){
+print $0};
+}' | sort | uniq -c | sort -k1,1nr | awk -v seqname=$sample '{if($1>1){print seqname"_"$2"_x"$1}}' > $sample.collapsed.2.fa
+done
+
+
+#convert reads to fasta
+for sample in 1 2 5
+do
+cat $sample.collapsed.1.fa | awk 'BEGIN{count=0;}{count+=1;split($0,bits,/_|_x/);print ">"bits[1]"_"count"_x"bits[3]"\n"bits[2];}' > $sample.fastacollapsed.1.fa
+done
+
+for sample in 1 2 5
+do
+cat $sample.collapsed.2.fa | awk 'BEGIN{count=0;}{count+=1;split($0,bits,/_|_x/);print ">"bits[1]"_"count"_x"bits[3]"\n"bits[2];}' > $sample.fastacollapsed.2.fa
+done
+
+
+for sample in 1
+do blastn -num_threads 20 -max_target_seqs 1 -max_hsps 1 -query $sample.fastacollapsed.1.fa -db Rfam_141 -outfmt '6 std qseq sseq' -task blastn -word_size 6 -dust no  > $sample.ALLSEQS.RFAM.1.OUT; done &
+
+
+for sample in 1
+do blastn -num_threads 20 -max_target_seqs 1 -max_hsps 1 -query $sample.fastacollapsed.2.fa -db Rfam_141 -outfmt '6 std qseq sseq' -task blastn -word_size 6 -dust no  > $sample.ALLSEQS.RFAM.2.OUT; done &
+
+ls
+
+hisat2 -x GRCh38.toplevel -q -1 1.hisat.REL98.unal.1.fastq -2 1.hisat.REL98.unal.2.fastq -S hisat2.1.unal.SAM --new-summary -t
+
+hisat2 --no-unal -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat2.1.SAM --new-summary -t
+
+
+
+
+
+hisat2 -p 4 --no-spliced-alignment --no-mixed --no-discordant -x REL98 -q -1 1_1.fq -2 1_2.fq -S 1.hisat.REL98.SAM --un-conc 1.hisat.REL98.unal.SAM --new-summary -t
+
+ls
+
+
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 12_1.fq -2 12_2.fq -S 12.bt.SAM -t
+
+
+
+
+bowtie2 --very-sensitive --no-discordant --no-mixed --no-unal -x Human_REL98 -q -1 1_1.fq -2 1_2.fq -S 1.bt.SAM -t
+hisat2 --no-unal -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat2.1.SAM --new-summary -t
+
+
+
+
+bowtie2 --very-sensitive --no-unal -x Human_REL98 -q -1 1_1.fq -2 1_2.fq -S 1.mixed.disc.bt.SAM -t
+bowtie2 --very-sensitive --no-discordant --no-unal -x Human_REL98 -q -1 1_1.fq -2 1_2.fq -S 1.mixed.bt.SAM -t
+ls
+
+
+hisat2 --no-mixed --no-unal -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat2.1.nomix.SAM --new-summary -t
+
+hisat2 --no-mixed --no-discordant --no-unal -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat2.1.nomix.nodisc.SAM --new-summary -t
+
+hisat2 --no-mixed --no-discordant --no-unal -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat2.1.nodisc.SAM --new-summary -t
+ls
+
+
+
+
+
+hisat2 --no-unal -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat2.1.SAM --new-summary -t
+samtools view -bhS hisat2.1.SAM > hisat2.1.BAM
+samtools sort hisat2.1.BAM -o hisat2.1.sorted.BAM
+samtools index hisat2.1.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 2_1.fq -2 2_2.fq -S hisat2.2.SAM --new-summary -t
+samtools view -bhS hisat2.2.SAM > hisat2.2.BAM
+samtools sort hisat2.2.BAM -o hisat2.2.sorted.BAM
+samtools index hisat2.2.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 3_1.fq -2 3_2.fq -S hisat2.3.SAM --new-summary -t
+samtools view -bhS hisat2.3.SAM > hisat2.3.BAM
+samtools sort hisat2.3.BAM -o hisat2.3.sorted.BAM
+samtools index hisat2.3.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 4_1.fq -2 4_2.fq -S hisat2.4.SAM --new-summary -t
+samtools view -bhS hisat2.4.SAM > hisat2.4.BAM
+samtools sort hisat2.4.BAM -o hisat2.4.sorted.BAM
+samtools index hisat2.4.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 5_1.fq -2 5_2.fq -S hisat2.5.SAM --new-summary -t
+samtools view -bhS hisat2.5.SAM > hisat2.5.BAM
+samtools sort hisat2.5.BAM -o hisat2.5.sorted.BAM
+samtools index hisat2.5.sorted.BAM
+
+hisat2 --no-unal -x GRCh38.toplevel -q -1 6_1.fq -2 6_2.fq -S hisat2.6.SAM --new-summary -t
+samtools view -bhS hisat2.6.SAM > hisat2.6.BAM
+samtools sort hisat2.6.BAM -o hisat2.6.sorted.BAM
+samtools index hisat2.6.sorted.BAM
+ls
+
+
+hisat2 --no-unal -x GRCh38.toplevel -q -1 7_1.fq -2 7_2.fq -S hisat2.7.SAM --new-summary -t
+samtools view -bhS hisat2.7.SAM > hisat2.7.BAM
+samtools sort hisat2.7.BAM -o hisat2.7.sorted.BAM
+samtools index hisat2.7.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 8_1.fq -2 8_2.fq -S hisat2.8.SAM --new-summary -t
+samtools view -bhS hisat2.7.SAM > hisat2.7.BAM
+samtools sort hisat2.7.BAM -o hisat2.7.sorted.BAM
+samtools index hisat2.7.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 9_1.fq -2 9_2.fq -S hisat2.9.SAM --new-summary -t
+samtools view -bhS hisat2.9.SAM > hisat2.9.BAM
+samtools sort hisat2.9.BAM -o hisat2.9.sorted.BAM
+samtools index hisat2.9.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 10_1.fq -2 10_2.fq -S hisat2.10.SAM --new-summary -t
+samtools view -bhS hisat2.10.SAM > hisat2.10.BAM
+samtools sort hisat2.10.BAM -o hisat2.10.sorted.BAM
+samtools index hisat2.10.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 11_1.fq -2 11_2.fq -S hisat2.11.SAM --new-summary -t
+samtools view -bhS hisat2.11.SAM > hisat2.11.BAM
+samtools sort hisat2.11.BAM -o hisat2.11.sorted.BAM
+samtools index hisat2.11.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 12_1.fq -2 12_2.fq -S hisat2.12.SAM --new-summary -t
+samtools view -bhS hisat2.12.SAM > hisat2.12.BAM
+samtools sort hisat2.12.BAM -o hisat2.12.sorted.BAM
+samtools index hisat2.12.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 25_1.fq -2 25_2.fq -S hisat2.25.SAM --new-summary -t
+samtools view -bhS hisat2.25.SAM > hisat2.25.BAM
+samtools sort hisat2.25.BAM -o hisat2.25.sorted.BAM
+samtools index hisat2.25.sorted.BAM
+hisat2 --no-unal -x GRCh38.toplevel -q -1 29_1.fq -2 29_2.fq -S hisat2.29.SAM --new-summary -t
+samtools view -bhS hisat2.29.SAM > hisat2.29.BAM
+samtools sort hisat2.29.BAM -o hisat2.29.sorted.BAM
+samtools index hisat2.29.sorted.BAM
+
+
+
+```{bash}
+
+
+
+
+for sample in  10 11 12
+do
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 ${sample}_1.fq -2 ${sample}_2.fq -S hisat_stringent.$sample.SAM --new-summary -t
+samtools view -bhS hisat_stringent.$sample.SAM > hisat_stringent.$sample.BAM
+samtools sort hisat_stringent.$sample.BAM -o hisat_stringent.$sample.sorted.BAM
+samtools index hisat_stringent.$sample.sorted.BAM
+stringtie -p 8 -G Homo_sapiens.GRCh38.98.gtf -o hisat_stringent.$sample.gtf hisat_stringent.$sample.sorted.BAM
+done
+
+
+for sample in 4 6 7 10 11 12
+do
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 ${sample}_1.fq -2 ${sample}_2.fq -S hisat_stringent.$sample.SAM --new-summary -t
+samtools view -bhS hisat_stringent.$sample.SAM > hisat_stringent.$sample.BAM
+samtools sort hisat_stringent.$sample.BAM -o hisat_stringent.$sample.sorted.BAM
+samtools index hisat_stringent.$sample.sorted.BAM
+stringtie -p 8 -G Homo_sapiens.GRCh38.98.gtf -o hisat_stringent.$sample.gtf hisat_stringent.$sample.sorted.BAM
+done
+
+
+for sample in  25 29 1 5
+do
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 ${sample}_1.fq -2 ${sample}_2.fq -S hisat_stringent.$sample.SAM --new-summary -t
+samtools view -bhS hisat_stringent.$sample.SAM > hisat_stringent.$sample.BAM
+samtools sort hisat_stringent.$sample.BAM -o hisat_stringent.$sample.sorted.BAM
+samtools index hisat_stringent.$sample.sorted.BAM
+stringtie -p 8 -G Homo_sapiens.GRCh38.98.gtf -o hisat_stringent.$sample.gtf hisat_stringent.$sample.sorted.BAM
+done
+
+
+
+stringtie -p 8 -G Homo_sapiens.GRCh38.98.gtf -o hisat_stringent.5.gtf hisat_stringent.5.sorted.BAM
+
+
+
+
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 1_1.fq -2 1_2.fq -S hisat_stringent.1.SAM --new-summary -t
+samtools view -bhS hisat_stringent.1.SAM > hisat_stringent.1.BAM
+samtools sort hisat_stringent.1.BAM -o hisat_stringent.1.sorted.BAM
+samtools index hisat_stringent.1.sorted.BAM
+
+
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 2_1.fq -2 2_2.fq -S hisat_stringent.2.SAM --new-summary -t
+samtools view -bhS hisat_stringent.2.SAM > hisat_stringent.2.BAM
+samtools sort hisat_stringent.2.BAM -o hisat_stringent.2.sorted.BAM
+samtools index hisat_stringent.2.sorted.BAM
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 3_1.fq -2 3_2.fq -S hisat_stringent.3.SAM --new-summary -t
+samtools view -bhS hisat_stringent.3.SAM > hisat_stringent.3.BAM
+samtools sort hisat_stringent.3.BAM -o hisat_stringent.3.sorted.BAM
+samtools index hisat_stringent.3.sorted.BAM
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 4_1.fq -2 4_2.fq -S hisat_stringent.4.SAM --new-summary -t
+samtools view -bhS hisat_stringent.4.SAM > hisat_stringent.4.BAM
+samtools sort hisat_stringent.4.BAM -o hisat_stringent.4.sorted.BAM
+samtools index hisat_stringent.4.sorted.BAM
+
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 5_1.fq -2 5_2.fq -S hisat_stringent.5.SAM --new-summary -t
+samtools view -bhS hisat_stringent.5.SAM > hisat_stringent.5.BAM
+samtools sort hisat_stringent.5.BAM -o hisat_stringent.5.sorted.BAM
+samtools index hisat_stringent.5.sorted.BAM
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 6_1.fq -2 6_2.fq -S hisat_stringent.6.SAM --new-summary -t
+samtools view -bhS hisat_stringent.6.SAM > hisat_stringent.6.BAM
+samtools sort hisat_stringent.6.BAM -o hisat_stringent.6.sorted.BAM
+samtools index hisat_stringent.6.sorted.BAM
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 7_1.fq -2 7_2.fq -S hisat_stringent.7.SAM --new-summary -t
+samtools view -bhS hisat_stringent.7.SAM > hisat_stringent.7.BAM
+samtools sort hisat_stringent.7.BAM -o hisat_stringent.7.sorted.BAM
+samtools index hisat_stringent.7.sorted.BAM
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 8_1.fq -2 8_2.fq -S hisat_stringent.8.SAM --new-summary -t
+samtools view -bhS hisat_stringent.7.SAM > hisat_stringent.7.BAM
+samtools sort hisat_stringent.7.BAM -o hisat_stringent.7.sorted.BAM
+samtools index hisat_stringent.7.sorted.BAM
+
+
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 9_1.fq -2 9_2.fq -S hisat_stringent.9.SAM --new-summary -t
+samtools view -bhS hisat_stringent.9.SAM > hisat_stringent.9.BAM
+samtools sort hisat_stringent.9.BAM -o hisat_stringent.9.sorted.BAM
+samtools index hisat_stringent.9.sorted.BAM
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 10_1.fq -2 10_2.fq -S hisat_stringent.10.SAM --new-summary -t
+
+
+
+
+samtools view -bhS hisat_stringent.10.SAM > hisat_stringent.10.BAM
+samtools sort hisat_stringent.10.BAM -o hisat_stringent.10.sorted.BAM
+samtools index hisat_stringent.10.sorted.BAM
+
+
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 11_1.fq -2 11_2.fq -S hisat_stringent.11.SAM --new-summary -t
+samtools view -bhS hisat_stringent.11.SAM > hisat_stringent.11.BAM
+samtools sort hisat_stringent.11.BAM -o hisat_stringent.11.sorted.BAM
+samtools index hisat_stringent.11.sorted.BAM
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 12_1.fq -2 12_2.fq -S hisat_stringent.12.SAM --new-summary -t
+samtools view -bhS hisat_stringent.12.SAM > hisat_stringent.12.BAM
+samtools sort hisat_stringent.12.BAM -o hisat_stringent.12.sorted.BAM
+samtools index hisat_stringent.12.sorted.BAM
+
+
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 25_1.fq -2 25_2.fq -S hisat_stringent.25.SAM --new-summary -t
+samtools view -bhS hisat_stringent.25.SAM > hisat_stringent.25.BAM
+samtools sort hisat_stringent.25.BAM -o hisat_stringent.25.sorted.BAM
+samtools index hisat_stringent.25.sorted.BAM
+
+
+
+
+
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 29_1.fq -2 29_2.fq -S hisat_stringent.29.SAM --new-summary -t
+samtools view -bhS hisat_stringent.29.SAM > hisat_stringent.29.BAM
+samtools sort hisat_stringent.29.BAM -o hisat_stringent.29.sorted.BAM
+samtools index hisat_stringent.29.sorted.BAM
+
+
+
+
+
+
+
+
+
+
+
+
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12
+do
+samtools view -bhS $sample.bt.SAM > $sample.bt.BAM
+samtools sort $sample.bt.BAM -o $sample.bt.sorted.BAM
+samtools index $sample.bt.sorted.BAM
+done
+
+express Homo_sapiens.GRCh38.REL98.fa 1.bt.sorted.BAM,2.bt.sorted.BAM,3.bt.sorted.BAM,4.bt.sorted.BAM,5.bt.sorted.BAM,6.bt.sorted.BAM,7.bt.sorted.BAM,8.bt.sorted.BAM,9.bt.sorted.BAM,10.bt.sorted.BAM,11.bt.sorted.BAM,12.bt.sorted.BAM --rf-stranded
+
+ls
+
+for sample in 25 26 27 28 29
+do
+samtools view -bhS $sample.bt.SAM > $sample.bt.BAM
+samtools sort $sample.bt.BAM -o $sample.bt.sorted.BAM
+samtools index $sample.bt.sorted.BAM
+done
+
+
+?LFCshrink
+
+
+
+expressfiles<1.bt.sorted.BAM,2.bt.sorted.BAM,3.bt.sorted.BAM,4.bt.sorted.BAM,5.bt.sorted.BAM,6.bt.sorted.BAM,7.bt.sorted.BAM,8.bt.sorted.BAM,9.bt.sorted.BAM,10.bt.sorted.BAM,11.bt.sorted.BAM,12.bt.sorted.BAM
+
+
+
+cd /mnt/f/sequencing/humangenome/Human98BT2
+cd /mnt/f/sequencing/humangenome/Human38HT2
+
+
+#1
+
+for sample in 9
+do
+samtools sort $sample.bt.BAM -o $sample.bt.sorted.BAM
+samtools index $sample.bt.sorted.BAM
+done
+
+for sample in 10 11 12
+do
+samtools view -bhS $sample.bt.SAM > $sample.bt.BAM
+samtools sort $sample.bt.BAM -o $sample.bt.sorted.BAM
+samtools index $sample.bt.sorted.BAM
+done
+
+ls
+
+
+
+
+
+
+#2
+
+
+
+
+for sample in 6 7 10 11 12
+do
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 ${sample}_1.fq -2 ${sample}_2.fq -S hisat_stringent.$sample.SAM --new-summary -t
+done
+
+for sample in 4
+do
+samtools sort hisat_stringent.$sample.BAM -o hisat_stringent.$sample.sorted.BAM
+samtools index hisat_stringent.$sample.sorted.BAM
+stringtie -p 8 -G Homo_sapiens.GRCh38.98.gtf -o hisat_stringent.$sample.gtf hisat_stringent.$sample.sorted.BAM
+done
+
+
+for sample in 6 7 10 11 12
+do
+samtools view -bhS hisat_stringent.$sample.SAM > hisat_stringent.$sample.BAM
+samtools sort hisat_stringent.$sample.BAM -o hisat_stringent.$sample.sorted.BAM
+samtools index hisat_stringent.$sample.sorted.BAM
+stringtie -p 8 -G Homo_sapiens.GRCh38.98.gtf -o hisat_stringent.$sample.gtf hisat_stringent.$sample.sorted.BAM
+done
+
+
+
+for sample in  25 29 
+do
+hisat2 --no-discordant --no-mixed --no-unal -x GRCh38.toplevel -q -1 ${sample}_1.fq -2 ${sample}_2.fq -S hisat_stringent.$sample.SAM --new-summary -t
+samtools view -bhS hisat_stringent.$sample.SAM > hisat_stringent.$sample.BAM
+samtools sort hisat_stringent.$sample.BAM -o hisat_stringent.$sample.sorted.BAM
+samtools index hisat_stringent.$sample.sorted.BAM
+stringtie -p 8 -G Homo_sapiens.GRCh38.98.gtf -o hisat_stringent.$sample.gtf hisat_stringent.$sample.sorted.BAM
+done
+
+cd /mnt/f/sequencing/humangenome/Human98BT2
+
+express Homo_sapiens.GRCh38.REL98.fa 1.bt.sorted.BAM,2.bt.sorted.BAM,3.bt.sorted.BAM,4.bt.sorted.BAM,5.bt.sorted.BAM,6.bt.sorted.BAM,7.bt.sorted.BAM,8.bt.sorted.BAM,9.bt.sorted.BAM,10.bt.sorted.BAM,11.bt.sorted.BAM,12.bt.sorted.BAM --rf-stranded
+
+
+express Homo_sapiens.GRCh38.REL98.fa 1.bt.sorted.BAM,2.bt.sorted.BAM,3.bt.sorted.BAM,4.bt.sorted.BAM,5.bt.sorted.BAM,6.bt.sorted.BAM,7.bt.sorted.BAM,8.bt.sorted.BAM,9.bt.sorted.BAM,10.bt.sorted.BAM,11.bt.sorted.BAM,12.bt.sorted.BAM
+
+ls
+
+
+
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12
+do
+express Homo_sapiens.GRCh38.REL98.fa $sample.bt.sorted.BAM --rf-stranded -o res.$sample
+done
+
+
+
+express Homo_sapiens.GRCh38.REL98.fa 1.bt.sorted.BAM,2.bt.sorted.BAM,3.bt.sorted.BAM,4.bt.sorted.BAM,5.bt.sorted.BAM,6.bt.sorted.BAM,7.bt.sorted.BAM,8.bt.sorted.BAM,9.bt.sorted.BAM,10.bt.sorted.BAM,11.bt.sorted.BAM,12.bt.sorted.BAM --rf-stranded --no-bias-correct
+
+ls
+
+
+
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12
+do
+express Homo_sapiens.GRCh38.REL98.fa $sample.bt.sorted.BAM --rf-stranded -o res.$sample
+done
+```
+
+
+```{bash}
+library(DESeq2)
+library(tidyverse)
+install.packages("gplots")
+library(gplots) 
+library(RColorBrewer)
+library(dplyr)
+
+
+
+
+ensembl <- useMart("ensembl")
+listDatasets(ensembl100)
+ensembl = useDataset("hsapiens_gene_ensembl",mart=ensembl)
+listAttributes(ensembl100)
+
+
+ensembl100<-getBM(attributes=c('ensembl_gene_id', 'ensembl_transcript_id','external_gene_name'), 
+                  mart = ensembl)
+
+ensembl_genes<-ensembl100[,c(1,3)]
+ensembl_genes<-distinct(ensembl_genes,ensembl_gene_id, .keep_all= TRUE)
+
+
+
+
+
+
+
+
+FCWT1_reverse.counts<-read.csv("FCWT1.counts_reverse.csv",header=TRUE, row.names=1)
+FCWT2_reverse.counts<-read.csv("FCWT2.count_reverse",header=TRUE, row.names=1)
+FCWT3_reverse.counts<-read.csv("FCWT3.count_reverse",header=TRUE, row.names=1)
+FCWT4_reverse.counts<-read.csv("FCWT4.count_reverse",header=TRUE, row.names=1)
+FCKO1_reverse.counts<-read.csv("FCKO1.count_reverse",header=TRUE, row.names=1)
+FCKO2_reverse.counts<-read.csv("FCKO2.count_reverse",header=TRUE, row.names=1)
+FCKO3_reverse.counts<-read.csv("FCKO3.count_reverse",header=TRUE, row.names=1)
+FCKO4_reverse.counts<-read.csv("FCKO4.count_reverse",header=TRUE, row.names=1)
+FCH1_reverse.counts<-read.csv("FCH1.count_reverse",header=TRUE, row.names=1)
+FCH2_reverse.counts<-read.csv("FCH2.count_reverse",header=TRUE, row.names=1)
+FCH3_reverse.counts<-read.csv("FCH3.count_reverse",header=TRUE, row.names=1)
+FCH4_reverse.counts<-read.csv("FCH4.count_reverse",header=TRUE, row.names=1)
+
+
+FCWTHKO_reverse<- data.frame(FCWT1_reverse.counts,
+                             FCWT2_reverse.counts,
+                             FCWT3_reverse.counts,
+                             FCWT4_reverse.counts,
+                             FCKO1_reverse.counts,
+                             FCKO2_reverse.counts,
+                             FCKO3_reverse.counts,
+                             FCKO4_reverse.counts,
+                             FCH1_reverse.counts,
+                             FCH2_reverse.counts,
+                             FCH3_reverse.counts,
+                             FCH4_reverse.counts
+)
+colnames(FCWTHKO_reverse)<-c("WT1","WT2","WT3","WT4","KO1","KO2","KO3","KO4","H1","H2","H3","H4")
+
+FCWTHKO_reverse$total<-rowSums(FCWTHKO_reverse[,1:12])
+filter <- filter(FCWTHKO_reverse, total >50)
+boxplot(filter[1:12],ylim = c(0, 1500))
+
+
+conditions<- data.frame(c(rep("wildtype",4),rep("knockout",4),rep("heterozygote",4)))
+rownames(conditions)<-colnames(FCWTHKO_reverse[,1:12])
+colnames(conditions)<-("cell.line")
+DEseqWTHKO_reverse <- DESeqDataSetFromMatrix(countData = FCWTHKO_reverse[,1:12],
+                                             colData = conditions,
+                                             design = ~ cell.line)
+DEseqWTHKO_reverse$cell.line <- relevel(DEseqWTHKO_reverse$cell.line, ref = "wildtype")
+sizeFactors(estimateSizeFactors(DEseqWTHKO_reverse))
+DEseqWTHKO_reverse<-DESeq(DEseqWTHKO_reverse)
+
+
+View(DEseqWTHKO_reverse)
+
+
+counts(DEseqWTHKO_reverse)[1:5,]
+counts(DEseqWTHKO_reverse,normalized=TRUE)[1:5,]
+
+rlogDEseqWTHKO_reverse<-rlog(DEseqWTHKO_reverse)
+plot(hclust(dist(t(assay(rlogDEseqWTHKO_reverse)))))
+plotPCA(rlogDEseqWTHKO_reverse,intgroup="cell.line")
+
+
+DEseqWTHKO_reverse_H <- lfcShrink(DEseqWTHKO_reverse, coef="cell.line_heterozygote_vs_wildtype",type="apeglm")
+DEseqWTHKO_reverse_KO <- lfcShrink(DEseqWTHKO_reverse, coef="cell.line_knockout_vs_wildtype",type="apeglm")
+
+head(DEseqWTHKO_reverse_H)
+summary(DEseqWTHKO_reverse_H)
+head(DEseqWTHKO_reverse_KO)
+summary(DEseqWTHKO_reverse_KO)
+
+
+
+
+
+
+
+
+
+#filter for significant genes with padj<0.05 abs 2logFC>1 H
+filter1_DEseqWTHKO_reverse_H<-DEseqWTHKO_reverse_H[complete.cases(DEseqWTHKO_reverse_H),]
+filter2_DEseqWTHKO_reverse_H<-filter1_DEseqWTHKO_reverse_H[filter1_DEseqWTHKO_reverse_H$padj<0.05,]
+filter3_DEseqWTHKO_reverse_H<-filter2_DEseqWTHKO_reverse_H[abs(filter2_DEseqWTHKO_reverse_H$log2FoldChange) > 1,]
+dim(filter1_DEseqWTHKO_reverse_H)
+dim(filter2_DEseqWTHKO_reverse_H)
+dim(filter3_DEseqWTHKO_reverse_H)
+View(as.data.frame(filter3_DEseqWTHKO_reverse_H))
+write.csv( as.data.frame(filter3_DEseqWTHKO_reverse_H), file="DEseqWTHKO_reverse_H_sign_FC.csv" )
+
+class(filter1_DEseqWTHKO_reverse_H)
+dffilter<-as.data.frame(filter1_DEseqWTHKO_reverse_H)
+dffilter$filter<-dffilter$padj<0.05 & abs(dffilter$log2FoldChange)>1
+
+ggplot(dffilter,aes(x=log2FoldChange, y=-log10(padj))) +
+  geom_point(aes(colour=filter)) +
+  scale_colour_manual(values=c("black","red"))+
+  geom_vline(xintercept=1,linetype=3) +
+  geom_vline(xintercept=-1,linetype=3) +
+  geom_hline(yintercept=-log10(0.05),linetype=3)+
+  xlim(-10,10)+
+  theme_niwot() +
+  theme(legend.position = "none") +
+  ggtitle("DEseqWTHKO_reverse_H")
+
+
+#filter for significant genes with padj<0.05 abs 2logFC>1 KO
+filter1_DEseqWTHKO_reverse_KO<-DEseqWTHKO_reverse_KO[complete.cases(DEseqWTHKO_reverse_KO),]
+filter2_DEseqWTHKO_reverse_KO<-filter1_DEseqWTHKO_reverse_KO[filter1_DEseqWTHKO_reverse_KO$padj<0.05,]
+filter3_DEseqWTHKO_reverse_KO<-filter2_DEseqWTHKO_reverse_KO[abs(filter2_DEseqWTHKO_reverse_KO$log2FoldChange) > 1,]
+dim(filter1_DEseqWTHKO_reverse_KO)
+dim(filter2_DEseqWTHKO_reverse_KO)
+dim(filter3_DEseqWTHKO_reverse_KO)
+View(as.data.frame(filter3_DEseqWTHKO_reverse_KO))
+write.csv( as.data.frame(filter3_DEseqWTHKO_reverse_KO), file="DEseqWTHKO_reverse_KO_sign_FC.csv" )
+
+class(filter1_DEseqWTHKO_reverse_KO)
+dffilter<-as.data.frame(filter1_DEseqWTHKO_reverse_KO)
+dffilter$filter<-dffilter$padj<0.05 & abs(dffilter$log2FoldChange)>1
+
+ggplot(dffilter,aes(x=log2FoldChange, y=-log10(padj))) +
+  geom_point(aes(colour=filter)) +
+  scale_colour_manual(values=c("black","red"))+
+  geom_vline(xintercept=1,linetype=3) +
+  geom_vline(xintercept=-1,linetype=3) +
+  geom_hline(yintercept=-log10(0.05),linetype=3)+
+  xlim(-10,10)+
+  theme_niwot() +
+  theme(legend.position = "none") +
+  ggtitle("DEseqWTHKO_reverse_KO")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+total_RNA_DESeq2_normalised<-counts(DEseqWTHKO_reverse,normalized=TRUE)
+write.csv( as.data.frame(counts(DEseqWTHKO_reverse,normalized=TRUE)), file="total_RNA_DESeq2_normalised.csv" )
+
+write.csv(ensembl100,file="ensembl100.csv")
+
+ensembl_gene_name<-ensembl100[,c(1,3)]
+ensembl_gene_name<-distinct(ensembl_gene_name,ensembl_gene_id, .keep_all= TRUE)
+
+ensembl_GO<-ensembl100[,c(1,3,4)]
+ensembl_GO_unique<-distinct(ensembl_GO,name_1006, .keep_all= TRUE)
+
+write.csv(DEseqWTHKO_reverse_H, file="DEseqWTHKO_reverse_H2.csv" )
+write.csv(DEseqWTHKO_reverse_KO, file="DEseqWTHKO_reverse_KO3.csv" )
+
+DEseqWTHKO_reverse_H<-read.csv(file="DEseqWTHKO_reverse_H2.csv")
+DEseqWTHKO_reverse_KO<-read.csv(file="DEseqWTHKO_reverse_KO3.csv")
+
+
+
+head(DEseqWTHKO_reverse_H)
+head(DEseqWTHKO_reverse_KO)
+DEseqWTHKO_reverse_H$FC_H<-DEseqWTHKO_reverse_H$log2FoldChange
+DEseqWTHKO_reverse_KO$FC_KO<-DEseqWTHKO_reverse_KO$log2FoldChange
+
+
+
+
+total_RNA_DESeq2_normalised_info<-as.data.frame(total_RNA_DESeq2_normalised[,c(1:4,9:12,5:8)])
+total_RNA_DESeq2_normalised_info$ensembl_gene_id<-rownames(total_RNA_DESeq2_normalised_info)
+total_RNA_DESeq2_normalised_info<-left_join(total_RNA_DESeq2_normalised_info,ensembl_gene_name)
+total_RNA_DESeq2_normalised_info$total<-rowSums(total_RNA_DESeq2_normalised_info[,1:12])
+total_RNA_DESeq2_normalised_info<-filter(total_RNA_DESeq2_normalised_info,total>0)
+total_RNA_DESeq2_normalised_info<-left_join(total_RNA_DESeq2_normalised_info,DEseqWTHKO_reverse_H[,c(9,6,7)])
+total_RNA_DESeq2_normalised_info<-left_join(total_RNA_DESeq2_normalised_info,DEseqWTHKO_reverse_KO[,c(9,8)])
+total_RNA_DESeq2_normalised_info<-distinct(total_RNA_DESeq2_normalised_info,external_gene_name, .keep_all= TRUE)
+total_RNA_DESeq2_normalised_info<-total_RNA_DESeq2_normalised_info%>%drop_na(external_gene_name)
+rownames(total_RNA_DESeq2_normalised_info)<-total_RNA_DESeq2_normalised_info$external_gene_name
+
+
+
+
+
+innate_immunity<-c("cellular response to interferon-beta",
+                   "antiviral innate immune response",
+                   "negative regulation of innate immune response",
+                   "positive regulation of innate immune response",
+                   "regulation of innate immune response",
+                   "activation of innate immune response","","","")
+
+cellular response to interferon-beta
+antiviral innate immune response
+negative regulation of innate immune response
+positive regulation of innate immune response
+regulation of innate immune response
+activation of innate immune response
+innate immune response
+positive regulation of type I interferon production
+regulation of type I interferon production
+positive regulation of interferon-beta production
+negative regulation of type I interferon-mediated signaling pathway
+type I interferon signaling pathway
+response to type I interferon
+negative regulation of type I interferon production
+positive regulation of interferon-beta secretion
+positive regulation of type I interferon-mediated signaling pathway
+type I interferon production
+interferon receptor activity
+negative regulation of interferon-beta production
+type I interferon receptor binding
+response to interferon-beta
+type I interferon receptor activity
+cellular response to interferon-beta
+type I interferon binding
+negative regulation of interferon-beta secretion
+interferon-beta production
+regulation of interferon-beta production
+cellular response to type I interferon
+
+
+#total_RNA_DESeq2_normalised_info<-distinct(total_RNA_DESeq2_normalised_info,name_1006, .keep_all= TRUE)
+#total_RNA_DESeq2_normalised_info<-total_RNA_DESeq2_normalised_info[complete.cases(total_RNA_DESeq2_normalised_info$external_gene_name), ]
+
+
+
+
+total_RNA_DESeq2_normalised_info%>%filter(name_1006=="response to interferon-beta")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+total_RNA_DESeq2_normalised_info%>%filter(name_1006=="cellular response to interferon-beta")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+total_RNA_DESeq2_normalised_info%>%filter(name_1006=="antiviral innate immune response")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+
+
+
+
+test<-filter(total_RNA_DESeq2_normalised_info,name_1006=="type I interferon signaling pathway")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+rownames(test)<-test$external_gene_name
+
+class(test)
+test<-data.matrix(test[,1:12])
+
+
+heatmap.2( test, scale="none",
+           trace="none", dendrogram="row", Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(5, "RdBu")) )(255))
+
+
+heatmap.2( test, scale="none",
+           trace="none", dendrogram="row", Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(5, "RdBu")) )(20055))
+
+
+RIGI_pathway<-c("DDX58",
+               "IFIH1",
+               "MAVS",
+               "DHX58",
+               "TRAF3",
+               "TANK",
+               "AZI2",
+               "TBKBP1;",
+               "IKBKG",
+               "TBK1",
+               "IKBKE",
+               "IRF3",
+               "IRF7",
+               "IFNA1",
+               "IFNA2",
+               "IFNA4",
+               "IFNA5",
+               "IFNA6",
+               "IFNA7",
+               "IFNA8",
+               "IFNA10",
+               "IFNA13",
+               "IFNA14",
+               "IFNA16",
+               "IFNA17",
+               "IFNA21",
+               "IFNB1",
+               "IFNW1",
+               "IFNE",
+               "IFNK",
+               "TRADD",
+               "FADD",
+               "RIPK1",
+               "CASP8",
+               "CASP10",
+               "CHUK",
+               "IKBKB",
+               "NFKBIB",
+               "NFKBIA",
+               "NFKB1",
+               "RELA",
+               "TRAF2",
+               "MAP3K7",
+               "TRAF6",
+               "MAP3K1",
+               "MAPK8",
+               "MAPK10",
+               "MAPK9",
+               "MAPK11",
+               "MAPK12",
+               "MAPK13",
+               "MAPK14",
+               "CXCL8",
+               "TNF",
+               "IL12A",
+               "IL12B",
+               "CXCL10",
+               "TRIM25",
+               "CYLD",
+               "RNF125",
+               "ISG15",
+               "ATG5",
+               "ATG12",
+               "NLRX1",
+               "STING1",
+               "OTUD5",
+               "SIKE1",
+               "DDX3X",
+               "PIN1",
+               "TKFC"
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+test2<-data.frame(RIGI_pathway)
+
+test<-total_RNA_DESeq2_normalised_info[total_RNA_DESeq2_normalised_info$external_gene_name %in% RIGI_pathway,]%>%distinct(external_gene_name, .keep_all= TRUE)
+
+rownames(test)<-test$external_gene_name
+
+class(test)
+test<-data.matrix(test[,1:12])
+test<-data.matrix(test[,c(1:4,9:12)])
+heatmap.2( test, scale="row",
+           trace="none", dendrogram="row", Colv=FALSE,
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+
+
+
+
+
+
+filter(total_RNA_DESeq2_normalised_info,name_1006=="RIG-I signaling pathway")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+filter(total_RNA_DESeq2_normalised_info,name_1006=="regulation of type I interferon production")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+filter(total_RNA_DESeq2_normalised_info,name_1006=="interferon-beta production")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+filter(total_RNA_DESeq2_normalised_info,name_1006=="response to type I interferon")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+filter(total_RNA_DESeq2_normalised_info,name_1006=="interferon-beta production")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+filter(total_RNA_DESeq2_normalised_info,name_1006=="interferon-beta production")%>%distinct(external_gene_name, .keep_all= TRUE)
+
+
+
+
+write.csv( as.data.frame(total_RNA_DESeq2_normalised_info), file="total_RNA_DESeq2_normalised_info.csv" )
+
+write.csv( as.data.frame(ensembl100), file="ensembl100.csv" )
+
+DEseqWTHKO_reverse_H<-read.csv("DEseqWTHKO_reverse_H2.csv")
+t<-DEseqWTHKO_reverse_H[DEseqWTHKO_reverse_H$external_gene_name %in% RIGI_pathway,]%>%distinct(external_gene_name, .keep_all= TRUE)
+
+
+DEseqWTHKO_reverse_KO<-read.csv("DEseqWTHKO_reverse_KO3.csv")
+
+
+
+
+
+
+#Kegg pathways
+
+mirwalk_RIGI<-read.csv("miRWalk_miRNA_Targets-RIGI_pathway.csv")
+RIGI_pathway<-c(distinct(mirwalk_RIGI,genesymbol, .keep_all= TRUE)[,3],"IFNA6","NFKBIB","STING1" )
+total_RNA_RIGI_pathway<-total_RNA_DESeq2_normalised_info[total_RNA_DESeq2_normalised_info$external_gene_name %in% 
+                                                           RIGI_pathway,]%>%distinct(external_gene_name, .keep_all= TRUE)
+
+rownames(total_RNA_RIGI_pathway)<-total_RNA_RIGI_pathway$external_gene_name
+heatmap.2( data.matrix(total_RNA_RIGI_pathway[,1:12]), scale="none",
+           trace="none", dendrogram="row", Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(5, "RdBu")) )(255))
+
+
+
+total_RNA_RIGI_pathway<-total_RNA_DESeq2_normalised_info[total_RNA_DESeq2_normalised_info$external_gene_name %in%
+                                                              RIGI_pathway,]%>%
+  distinct(external_gene_name, .keep_all= TRUE)
+sign_total_RNA_RIGI_pathway<-total_RNA_RIGI_pathway[total_RNA_RIGI_pathway$padj<=0.05,]
+sign_total_RNA_RIGI_pathway<-sign_total_RNA_RIGI_pathway[complete.cases(sign_total_RNA_RIGI_pathway),]
+
+
+
+heatmap.2( data.matrix(sign_total_RNA_RIGI_pathway[,1:8])
+           [ order(sign_total_RNA_RIGI_pathway$FC_KO, decreasing=TRUE ), ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+heatmap.2( data.matrix(sign_total_RNA_RIGI_pathway[,1:12])
+           [ order(sign_total_RNA_RIGI_pathway$FC_KO, decreasing=TRUE ), ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+
+
+heatmap.2( data.matrix(total_RNA_RIGI_pathway[,1:8])
+           [ order(total_RNA_RIGI_pathway$FC_KO, decreasing=TRUE ), ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+
+heatmap.2( data.matrix(total_RNA_RIGI_pathway[,c(1:4,9:12,5:8)])
+           [ order(total_RNA_RIGI_pathway$FC_KO, decreasing=TRUE ), ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mirwalk_JAKSTAT<-read.csv("miRWalk_miRNA_Targets_JAKSTAT.csv")
+JAKSTAT_pathway<-distinct(mirwalk_JAKSTAT,genesymbol, .keep_all= TRUE)[,3]
+
+
+
+
+total_RNA_JAKSTAT_pathway<-total_RNA_DESeq2_normalised_info[total_RNA_DESeq2_normalised_info$external_gene_name %in%
+                                                                   JAKSTAT_pathway,]%>%
+  distinct(external_gene_name, .keep_all= TRUE)
+sign_total_RNA_JAKSTAT_pathway<-total_RNA_JAKSTAT_pathway[total_RNA_JAKSTAT_pathway$padj<=0.05,]
+sign_total_RNA_JAKSTAT_pathway<-sign_total_RNA_JAKSTAT_pathway[complete.cases(sign_total_RNA_JAKSTAT_pathway),]
+
+
+
+heatmap.2( data.matrix(sign_total_RNA_JAKSTAT_pathway[,1:8])
+           [ order(sign_total_RNA_JAKSTAT_pathway$FC_H, decreasing=TRUE )[1:35], ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+heatmap.2( data.matrix(sign_total_RNA_JAKSTAT_pathway[,1:12])
+           [ order(sign_total_RNA_JAKSTAT_pathway$FC_H, decreasing=TRUE )[1:35], ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+
+
+heatmap.2( data.matrix(total_RNA_JAKSTAT_pathway[,1:8])
+           [ order(total_RNA_JAKSTAT_pathway$FC_H, decreasing=TRUE )[1:35], ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+
+heatmap.2( data.matrix(total_RNA_JAKSTAT_pathway[,c(1:4,9:12,5:8)])
+           [ order(total_RNA_JAKSTAT_pathway$FC_KO, decreasing=TRUE ), ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+
+
+mirwalk_pluripotency<-read.csv("miRWalk_miRNA_Targets_pluripotency_stem_cells.csv")
+pluripotency_pathway<-distinct(mirwalk_pluripotency,genesymbol, .keep_all= TRUE)[,3]
+total_RNA_pluripotency_pathway<-total_RNA_DESeq2_normalised_info[total_RNA_DESeq2_normalised_info$external_gene_name %in%
+                                                                   pluripotency_pathway,]%>%
+  distinct(external_gene_name, .keep_all= TRUE)
+sign_total_RNA_pluripotency_pathway<-total_RNA_pluripotency_pathway[total_RNA_pluripotency_pathway$padj<=0.05,]
+sign_total_RNA_pluripotency_pathway<-sign_total_RNA_pluripotency_pathway[complete.cases(sign_total_RNA_pluripotency_pathway),]
+
+
+
+heatmap.2( data.matrix(sign_total_RNA_pluripotency_pathway[,1:12])
+           [ order(sign_total_RNA_pluripotency_pathway$FC_H, decreasing=TRUE ), ],
+           scale="row",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+#heatmap.2( data.matrix(sign_total_RNA_pluripotency_pathway[,1:8])
+           [ order(sign_total_RNA_pluripotency_pathway$log2FoldChange, decreasing=TRUE )[1:35], ],
+           scale="none",Rowv = "none",
+           trace="none", dendrogram="none",Colv=FALSE, 
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+
+
+
+
+

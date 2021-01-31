@@ -1,0 +1,208 @@
+---
+title: "Total_small_RNA_seq"
+author: "Lisanne"
+date: "07/02/2020"
+output: html_document
+---
+
+
+
+#Preprocessing of samples
+```{bash}
+
+#unzip files
+gunzip *.fq.gz
+
+#quality control
+for sample in S25 S26 S27 S28 S29 S30 S31 S32 S33 S34 S35 S36
+do
+fastqc $sample.fq
+done
+
+#collapse reads
+for sample in S25 S26 S27 S28 S29 S30 S31 S32 S33 S34 S35 S36
+do
+cat $sample.fq | awk '{
+if(FNR%4==2){
+print $0};
+}' | sort | uniq -c | sort -k1,1nr | awk -v seqname=$sample '{if($1>1){print seqname"_"$2"_x"$1}}' > $sample.collapsed.fa
+done
+
+#convert reads to fasta
+for sample in S25 S26 S27 S28 S29 S30 S31 S32 S33 S34 S35 S36
+do
+cat $sample.collapsed.fa | awk 'BEGIN{count=0;}{count+=1;split($0,bits,/_|_x/);print ">"bits[1]"_"count"_x"bits[3]"\n"bits[2];}' > $sample.fastacollapsed.fa
+done
+```
+
+#Determine identitty miRNAs wit miRDeep2
+```{bash}
+#concatenate samples
+cat *.fastacollapsed.fa>>all_samples_over_2.fa
+
+#run miRDeep2 quantifier with 0 mismatchges allowed
+quantifier.pl -p hairpin.fa -m mature.fa -r all_samples_over_2.fa -t hsa -g 0
+
+```
+
+
+#desc	total	mapped	unmapped	%mapped	%unmapped
+total:	375664214	232167263	143496951	61.802	38.198
+S25:	28789216	21144998	7644218	73.448	26.552
+S26:	35088305	25974972	9113333	74.027	25.973
+S27:	34077853	25653145	8424708	75.278	24.722
+S28:	33113800	24493426	8620374	73.967	26.033
+S29:	31102613	11524606	19578007	37.053	62.947
+S30:	31573910	10776364	20797546	34.131	65.869
+S31:	21487223	7354478	14132745	34.227	65.773
+S32:	30808670	10675058	20133612	34.65	65.35
+S33:	26300989	19477135	6823854	74.055	25.945
+S34:	36129038	26504847	9624191	73.362	26.638
+S35:	31355813	22607483	8748330	72.1	27.9
+S36:	35836784	25980751	9856033	72.497	27.503
+
+
+Output in 1590690159.txt
+
+#determine identity of reads with blastn
+```{bash}
+
+#run blastn on collapsed fasta files
+for sample in S25 S26 S27 S28 S29 S30 S31 S32 S33 S34 S35 S36
+do blastn -num_threads 20 -max_target_seqs 1 -max_hsps 1 -query /$sample.fastacollapsed.fa -db Rfam_141 -outfmt '6 std qseq sseq' -task blastn -word_size 6 -dust no  > $sample.ALLSEQS.RFAM.OUT; done
+
+#identify total number of tRNAs
+for sample in S25 S26 S27 S28 S29 S30 S31 S32 S33 S34 S35 S36
+do
+cat $sample.ALLSEQS.RFAM.OUT|grep tRNA|awk 'BEGIN{FS="_x"} {print $2}'|awk '{FS="\t";{print $1;}}'|awk '{s+=$1} END {print s}'
+done
+
+
+for sample in S25 S26 S27 S28 S29 S30 S31 S32 S33 S34 S35 S36
+do
+cat $sample.rfamclasses|grep tRNA|awk 'BEGIN{FS="_x"} {print $2}'|awk '{FS="\t";{print $1;}}'|awk '{s+=$1} END {print s}'
+cat $sample.rfamclasses|grep mir|awk 'BEGIN{FS="_x"} {print $2}'|awk '{FS="\t";{print $1;}}'|awk '{s+=$1} END {print s}'
+cat $sample.rfamclasses|grep rRNA|awk 'BEGIN{FS="_x"} {print $2}'|awk '{FS="\t";{print $1;}}'|awk '{s+=$1} END {print s}'
+cat $sample.rfamclasses|grep lncRNA|awk 'BEGIN{FS="_x"} {print $2}'|awk '{FS="\t";{print $1;}}'|awk '{s+=$1} END {print s}'
+
+done
+
+
+```
+
+696154
+772895
+730696
+887060
+3797089
+4397761
+3686543
+4905789
+517016
+857396
+969921
+1056465
+
+
+
+
+
+
+#normalise miRNAs for WT, KO & H identified by miRDeep to tRNAs identified by blastn
+```{r}
+
+#create matrix of relative tRNA values
+normMatrixWT1<-matrix(rep(1,12))
+class(normMatrixWT1)
+as.data.frame(normMatrixWT1)
+normMatrixWT1<-mapply('/',normMatrixWT1, c(696154,
+                                         772895,
+                                         730696,
+                                         887060,
+                                         3797089,
+                                         4397761,
+                                         3686543,
+                                         4905789,
+                                         517016,
+                                         857396,
+                                         969921,
+                                         1056465
+))
+normMatrixWT1= mapply('*',normMatrixWT1,rep(696154,12))
+
+
+normFactorsWT1<-1/(data.frame(WT1=rep(normMatrixWT1[1],1667),
+                             WT2=rep(normMatrixWT1[2],1667),
+                             WT3=rep(normMatrixWT1[3],1667),
+                             WT4=rep(normMatrixWT1[4],1667),
+                             KO1=rep(normMatrixWT1[5],1667),
+                             KO2=rep(normMatrixWT1[6],1667),
+                             KO3=rep(normMatrixWT1[7],1667),
+                             KO4=rep(normMatrixWT1[8],1667),
+                             H1=rep(normMatrixWT1[9],1667),
+                             H2=rep(normMatrixWT1[10],1667),
+                             H3=rep(normMatrixWT1[11],1667),
+                             H4=rep(normMatrixWT1[12],1667)))
+normFactorsWT1<-as.matrix(normFactorsWT1)
+normFactorsWT1
+
+
+#set conditions and run DESeq
+conditionsWT1<- data.frame(c(rep("wildtype",4),rep("knockout",4),rep("heterozygote",4)))
+rownames(conditionsWT1)<-colnames(d1590690159[,1:12])
+colnames(conditionsWT1)<-("cell.line")
+
+DEseqd1590690159WT1 <- DESeqDataSetFromMatrix(countData = d1590690159[,1:12],
+                                             colData = conditions,
+                                             design = ~ cell.line)
+DEseqd1590690159WT1$cell.line <- relevel(DEseqd1590690159WT1$cell.line, ref = "wildtype")
+normalizationFactors(DEseqd1590690159WT1) <- normFactorsWT
+
+#sizeFactors(estimateSizeFactors(DEseqd1590690159WT1))
+DEseqd1590690159WT1<-DESeq(DEseqd1590690159WT1)
+head(counts(DEseqd1590690159WT1, normalized=FALSE))
+head(counts(DEseqd1590690159WT1, normalized=TRUE))
+quantile(rowSums(counts(DEseqd1590690159WT1, normalized=TRUE)))
+
+normalised_counts_WT1tRNA<-as.data.frame(counts(DEseqd1590690159WT1, normalized=TRUE))
+write.csv(normalised_counts_WT1tRNA,"PA1_tRNA_WT1_normalised_counts.csv")
+
+
+
+#remove bottom 58%
+keep58WT <- rowSums(counts(DEseqd1590690159WT1, normalized=TRUE)) >= quantile(rowSums(counts(DEseqd1590690159WT1, normalized=TRUE)),.58)
+DEseqd1590690159WT1.58 <- DEseqd1590690159WT1[keep58WT,]
+head(counts(DEseqd1590690159WT1.58, normalized=FALSE))
+head(counts(DEseqd1590690159WT1.58, normalized=TRUE))
+DEseqd1590690159WT1.58<-DESeq(DEseqd1590690159WT1.58)
+
+#overall trends
+rlogDEseqd1590690159WT1.58<-rlog(DEseqd1590690159WT1.58)
+plot(hclust(dist(t(assay(rlogDEseqd1590690159WT1.58)))))
+plotPCA(rlogDEseqd1590690159WT1.58,intgroup="cell.line")
+
+VarGenessort <- head( order( rowVars( assay(rlogDEseqd1590690159WT1.58) ), decreasing=TRUE ), 750 )
+heatmap.2( assay(rlogDEseqd1590690159WT1.58)[ VarGenessort, ], scale="row", Rowv=FALSE,
+           trace="none", dendrogram="both",
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(555))
+topVarGenes <- head( order( rowVars( assay(rlogDEseqd1590690159WT1.58) ), decreasing=TRUE ), 50 )
+heatmap.2( assay(rlogDEseqd1590690159WT1.58)[ topVarGenes, ], scale="row", Rowv=FALSE,
+           trace="none", dendrogram="both",
+           col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(555))
+
+#statistical analysis
+DEseqd1590690159WT1.58_H <- lfcShrink(DEseqd1590690159WT1.58, coef="cell.line_heterozygote_vs_wildtype",type="apeglm")
+DEseqd1590690159WT1.58_KO <- lfcShrink(DEseqd1590690159WT1.58, coef="cell.line_knockout_vs_wildtype",type="apeglm")
+plotMA(DEseqd1590690159WT1.58_H, ylim=c(-2,2),alpha=0.05,main="H_shrink")
+plotMA(DEseqd1590690159WT1.58_KO, ylim=c(-2,2),alpha=0.05,main="KO_shrink")
+
+summary(DEseqd1590690159WT1.58_KO)
+summary(DEseqd1590690159WT1.58_H)
+
+#write.csv(DEseqd1590690159WT1.58_KO,"PA1__tRNA_WT1__results_KO.csv")
+#write.csv(DEseqd1590690159WT1.58_H,"PA1__tRNA_WT1__results_H.csv")
+
+
+```
+
+
